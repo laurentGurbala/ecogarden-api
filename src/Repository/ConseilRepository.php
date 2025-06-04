@@ -16,6 +16,21 @@ class ConseilRepository extends ServiceEntityRepository
         parent::__construct($registry, Conseil::class);
     }
 
+    /**
+     * @return Conseil[] retourne un tableau de conseil du mois en cours
+     */
+    public function findByCurrentMonth(): array
+    {
+        $currentMonth = (int) date('n');
+
+        return $this->createQueryBuilder('c')
+            ->where('c.mois = :mois')
+            ->setParameter('mois', $currentMonth)
+            ->getQuery()
+            ->getResult();
+    }
+
+
     //    /**
     //     * @return Conseil[] Returns an array of Conseil objects
     //     */
