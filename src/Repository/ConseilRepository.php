@@ -30,6 +30,17 @@ class ConseilRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * @return Conseil[] 
+     */
+    public function findByMonth(int $month): array
+    {
+        return $this->createQueryBuilder('c')
+            ->where('c.mois = :mois')
+            ->setParameter('mois', $month)
+            ->getQuery()
+            ->getResult();
+    }
 
     //    /**
     //     * @return Conseil[] Returns an array of Conseil objects
