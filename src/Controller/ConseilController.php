@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -28,8 +29,8 @@ final class ConseilController extends AbstractController
     public function getConseilByMonth(int $mois, ConseilRepository $conseilRepository, 
     SerializerInterface $serializer): JsonResponse
     {
-        if ($mois < 1  || $mois > 12) {
-            return new JsonResponse(["error" => "le mois doit être compris entre 1 et 12."], Response::HTTP_BAD_REQUEST);
+        if ($mois < 1 || $mois > 12) {
+            throw new BadRequestHttpException("Le mois doit être compris entre 1 et 12.");
         }
 
         $conseilList = $conseilRepository->findByMonth($mois);
