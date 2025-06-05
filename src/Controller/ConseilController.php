@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Conseil;
 use App\Repository\ConseilRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,5 +34,14 @@ final class ConseilController extends AbstractController
         $jsonConseilList = $serializer->serialize($conseilList, "json");
 
         return new JsonResponse($jsonConseilList, Response::HTTP_OK, [], true);
+    }
+
+    #[Route("/api/conseil/{id}", name: "delete_conseil", methods: ["DELETE"])]
+    public function deleteConseil(Conseil $conseil, EntityManagerInterface $em): JsonResponse
+    {
+        $em->remove($conseil);
+        $em->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }
