@@ -13,6 +13,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class ConseilController extends AbstractController
 {
@@ -26,8 +27,10 @@ final class ConseilController extends AbstractController
     }
 
     #[Route("/api/conseil/{mois}", name: "conseil_by_month", methods: ["GET"], requirements: ['mois' => '\d+'])]
-    public function getConseilByMonth(int $mois, ConseilRepository $conseilRepository, 
-    SerializerInterface $serializer): JsonResponse
+    public function getConseilByMonth(
+        int $mois, 
+        ConseilRepository $conseilRepository, 
+        SerializerInterface $serializer): JsonResponse
     {
         if ($mois < 1 || $mois > 12) {
             throw new BadRequestHttpException("Le mois doit être compris entre 1 et 12.");
@@ -52,10 +55,16 @@ final class ConseilController extends AbstractController
     public function createConseil(
         Request $request,
         SerializerInterface $serializer,
-        EntityManagerInterface $em
-    ): JsonResponse
+        EntityManagerInterface $em,
+        ValidatorInterface $validator): JsonResponse
     {
         $conseil = $serializer->deserialize($request->getContent(), Conseil::class, "json");
+
+        $errors = $validator->validate($conseil);
+
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, "json"), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
 
         $em->persist($conseil);
         $em->flush();
@@ -70,14 +79,19 @@ final class ConseilController extends AbstractController
         Request $request,
         SerializerInterface $serializer,
         Conseil $currentConseil,
-        EntityManagerInterface $em
-    ) : JsonResponse
+        EntityManagerInterface $em,
+        ValidatorInterface $validator) : JsonResponse
     {
         $serializer->deserialize($request->getContent(), Conseil::class, 'json',
         [AbstractNormalizer::OBJECT_TO_POPULATE => $currentConseil]);
 
         $em->persist($currentConseil);
         $em->flush();
+
+        $errors = $validator->validate($currentConseil);
+        if (count($errors) > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
     }
