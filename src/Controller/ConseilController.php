@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 
 final class ConseilController extends AbstractController
@@ -61,5 +62,22 @@ final class ConseilController extends AbstractController
         $jsonConseil = $serializer->serialize($conseil, "json");
 
         return new JsonResponse($jsonConseil, Response::HTTP_CREATED, [], true);
+    }
+
+    #[Route("/api/conseil/{id}", name: "update_conseil", methods: ["PUT"])]
+    public function updateConseil(
+        Request $request,
+        SerializerInterface $serializer,
+        Conseil $currentConseil,
+        EntityManagerInterface $em
+    ) : JsonResponse
+    {
+        $serializer->deserialize($request->getContent(), Conseil::class, 'json',
+        [AbstractNormalizer::OBJECT_TO_POPULATE => $currentConseil]);
+
+        $em->persist($currentConseil);
+        $em->flush();
+
+        return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
     }
 }
