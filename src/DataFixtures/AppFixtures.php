@@ -13,7 +13,8 @@ class AppFixtures extends Fixture
         for ($i = 0; $i < 20; $i++) {
             $conseil = new Conseil();
             $conseil->setContent('Conseil numéro ' . $i . ' : Pensez à arroser vos plantes régulièrement.');
-            $conseil->setMois(rand(1, 12));
+            $mois = array_unique([rand(1, 12), rand(1, 12)]);
+            $conseil->setMois($mois);
 
             $manager->persist($conseil);
         }

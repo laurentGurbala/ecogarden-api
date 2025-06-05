@@ -17,8 +17,8 @@ class Conseil
     #[ORM\Column(type: Types::TEXT)]
     private ?string $content = null;
 
-    #[ORM\Column]
-    private ?int $mois = null;
+    #[ORM\Column(type: Types::JSON)]
+    private array $mois = [];
 
     public function getId(): ?int
     {
@@ -37,12 +37,12 @@ class Conseil
         return $this;
     }
 
-    public function getMois(): ?int
+    public function getMois(): array
     {
         return $this->mois;
     }
 
-    public function setMois(int $mois): static
+    public function setMois(array $mois): static
     {
         $this->mois = $mois;
 
