@@ -7,6 +7,7 @@ use App\Repository\ConseilRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -43,5 +44,22 @@ final class ConseilController extends AbstractController
         $em->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route("/api/conseil", name: "create_conseil", methods:["POST"])]
+    public function createConseil(
+        Request $request,
+        SerializerInterface $serializer,
+        EntityManagerInterface $em
+    ): JsonResponse
+    {
+        $conseil = $serializer->deserialize($request->getContent(), Conseil::class, "json");
+
+        $em->persist($conseil);
+        $em->flush();
+
+        $jsonConseil = $serializer->serialize($conseil, "json");
+
+        return new JsonResponse($jsonConseil, Response::HTTP_CREATED, [], true);
     }
 }
