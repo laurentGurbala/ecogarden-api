@@ -4,5 +4,9 @@ controllers:
         namespace: App\Controller
     type: attribute
 
-api_login_check:
-    path: /api/login_check
+# api_login_check:
+#     path: /api/login_check
+api_auth_login:
+    path: /api/auth
+    methods: ["POST"]
+    controller: App\Controller\SecurityController::login
