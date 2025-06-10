@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -42,16 +43,8 @@ final class ConseilController extends AbstractController
         return new JsonResponse($jsonConseilList, Response::HTTP_OK, [], true);
     }
 
-    #[Route("/api/conseil/{id}", name: "delete_conseil", methods: ["DELETE"])]
-    public function deleteConseil(Conseil $conseil, EntityManagerInterface $em): JsonResponse
-    {
-        $em->remove($conseil);
-        $em->flush();
-
-        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
-    }
-
     #[Route("/api/conseil", name: "create_conseil", methods:["POST"])]
+    #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
     public function createConseil(
         Request $request,
         SerializerInterface $serializer,
@@ -75,6 +68,7 @@ final class ConseilController extends AbstractController
     }
 
     #[Route("/api/conseil/{id}", name: "update_conseil", methods: ["PUT"])]
+    #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
     public function updateConseil(
         Request $request,
         SerializerInterface $serializer,
@@ -94,5 +88,15 @@ final class ConseilController extends AbstractController
         }
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    #[Route("/api/conseil/{id}", name: "delete_conseil", methods: ["DELETE"])]
+    #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    public function deleteConseil(Conseil $conseil, EntityManagerInterface $em): JsonResponse
+    {
+        $em->remove($conseil);
+        $em->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }
