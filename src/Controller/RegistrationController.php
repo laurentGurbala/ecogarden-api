@@ -13,6 +13,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
@@ -127,5 +128,27 @@ final class RegistrationController extends AbstractController
         $em->flush();
         
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    #[Route("/api/user/{id}", name: "delete_user", methods: ["DELETE"])]
+    #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    #[OA\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        description: "L'id de l'utilisateur à supprimer",
+        schema: new OA\Schema(type: "integer")
+    )]
+    #[OA\Response(
+        response: 204,
+        description: "Utilisateur supprimé avec succès"
+    )]
+    #[OA\Tag(name: 'utilisateur')]
+    public function deleteConseil(User $conseil, EntityManagerInterface $em): JsonResponse
+    {
+        $em->remove($conseil);
+        $em->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }
