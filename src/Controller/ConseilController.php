@@ -17,6 +17,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 
 final class ConseilController extends AbstractController
 {
@@ -54,7 +55,7 @@ final class ConseilController extends AbstractController
         )
     )]
     #[OA\Tag(name: 'conseil')]
-    #[Route("/api/conseil/{mois}", name: "conseil_by_month", methods: ["GET"], requirements: ['mois' => '\d+'])]
+    #[Route("/api/conseil/{mois}", name: "conseil_by_month", methods: ["GET"])]
     public function getConseilByMonth(
         int $mois, 
         ConseilRepository $conseilRepository, 
@@ -93,7 +94,14 @@ final class ConseilController extends AbstractController
         EntityManagerInterface $em,
         ValidatorInterface $validator): JsonResponse
     {
-        $conseil = $serializer->deserialize($request->getContent(), Conseil::class, "json");
+        try {
+            /** @var Conseil $conseil */
+            $conseil = $serializer->deserialize($request->getContent(), Conseil::class, "json");
+        } catch (NotNormalizableValueException $e) {
+            return new JsonResponse([
+                'error' => 'Donnée invalide : ' . $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
+        }
 
         $errors = $validator->validate($conseil);
 

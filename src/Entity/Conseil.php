@@ -6,7 +6,6 @@ use App\Repository\ConseilRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
-use OpenApi\Attributes as OA;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ConseilRepository::class)]
@@ -33,13 +32,6 @@ class Conseil
             max: 12
         )
     ])]
-    #[OA\Property(
-    type: "array",
-    items: new OA\Items(
-        type: "integer",
-        format: "int32",
-        description: "Un mois entre 1 et 12")
-    )]
     #[Groups(["read", "write"])]
     private array $mois = [];
 
