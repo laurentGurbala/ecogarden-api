@@ -13,6 +13,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 
 final class RegistrationController extends AbstractController
 {
@@ -40,10 +41,14 @@ final class RegistrationController extends AbstractController
         EntityManagerInterface $em
     ): JsonResponse
     {
-        // Désérialisation du JSON vers un objet User
-        /** @var User $user */
-        $user = $serializer->deserialize($request->getContent(), User::class, "json");
-        
+        try {
+            /** @var User $user */
+            $user = $serializer->deserialize($request->getContent(), User::class, 'json');
+        } catch (NotNormalizableValueException $e) {
+            return new JsonResponse([
+                'error' => 'Donnée invalide : ' . $e->getMessage()
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }        
         // Validation
         $errors = $validator->validate($user);
         if ($errors->count() > 0) {
