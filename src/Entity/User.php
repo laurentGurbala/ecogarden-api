@@ -6,6 +6,8 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -15,8 +17,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-
+    
     #[ORM\Column(length: 180)]
+    #[Assert\Length(max: 180)]
+    #[Assert\Email(message: "L'email '{{ value }}' n'est pas un email valide.")]
+    #[Assert\NotBlank(message: "L'email est obligatoire.")]
+    #[Groups(['read', 'write'])]
     private ?string $email = null;
 
     /**
@@ -29,9 +35,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
+    #[Assert\NotBlank(message: "Le mot de passe est obligatoire.")]
+    #[Assert\Length(
+        min: 3,
+        minMessage: "Le mot de passe doit contenir au moins {{ limit }} caractères."
+    )]
+    #[Groups(['write'])]
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "La ville est obligatoire.")]
+    #[Assert\Length(
+        min: 2,
+        max: 255,
+        minMessage: "La ville doit contenir au moins {{ limit }} caractères.",
+        maxMessage: "La ville ne peut pas dépasser {{ limit }} caractères."
+    )]
+    #[Groups(['read', 'write'])]
     private ?string $ville = null;
 
     public function getId(): ?int
