@@ -15,9 +15,20 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
 
 final class ConseilController extends AbstractController
 {
+    #[OA\Response(
+        response: 200,
+        description: "Retourne la liste des conseils du mois en cours",
+        content: new OA\JsonContent(
+            type: "array",
+            items: new OA\Items(ref: new Model(type: Conseil::class, groups: ["read"]))
+        )
+    )]
+    #[OA\Tag(name: 'conseil')]
     #[Route('/api/conseil', name: 'conseil', methods: ["GET"])]
     public function getConseilList(ConseilRepository $conseilRepository, SerializerInterface $serializer): JsonResponse
     {
@@ -27,6 +38,22 @@ final class ConseilController extends AbstractController
         return new JsonResponse($jsonConseilList, Response::HTTP_OK, [], true);
     }
 
+    #[OA\Parameter(
+        name: "mois",
+        in: "path",
+        required: true,
+        description: "Le mois pour lequel récupérer les conseils (1 à 12)",
+        schema: new OA\Schema(type: "integer", minimum: 1, maximum: 12)
+    )]
+    #[OA\Response(
+        response: 200,
+        description: "Retourne la liste des conseils pour le mois donné",
+        content: new OA\JsonContent(
+            type: "array",
+            items: new OA\Items(ref: new Model(type: Conseil::class, groups: ["read"]))
+        )
+    )]
+    #[OA\Tag(name: 'conseil')]
     #[Route("/api/conseil/{mois}", name: "conseil_by_month", methods: ["GET"], requirements: ['mois' => '\d+'])]
     public function getConseilByMonth(
         int $mois, 
@@ -45,6 +72,21 @@ final class ConseilController extends AbstractController
 
     #[Route("/api/conseil", name: "create_conseil", methods:["POST"])]
     #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    #[OA\RequestBody(
+        required: true,
+        description: "Données du conseil à créer",
+        content: new OA\JsonContent(
+            ref: new Model(type: Conseil::class, groups: ["write"])
+        )
+    )]
+    #[OA\Response(
+        response: 201,
+        description: "Conseil créé avec succès",
+        content: new OA\JsonContent(
+            ref: new Model(type: Conseil::class, groups: ["read"])
+        )
+    )]
+    #[OA\Tag(name: 'conseil')]
     public function createConseil(
         Request $request,
         SerializerInterface $serializer,
@@ -69,6 +111,25 @@ final class ConseilController extends AbstractController
 
     #[Route("/api/conseil/{id}", name: "update_conseil", methods: ["PUT"])]
     #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    #[OA\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        description: "L'id du conseil à mettre à jour",
+        schema: new OA\Schema(type: "integer")
+    )]
+    #[OA\RequestBody(
+        required: true,
+        description: "Données du conseil à mettre à jour",
+        content: new OA\JsonContent(
+            ref: new Model(type: Conseil::class, groups: ["write"])
+        )
+    )]
+    #[OA\Response(
+        response: 204,
+        description: "Conseil mis à jour avec succès"
+    )]
+    #[OA\Tag(name: 'conseil')]
     public function updateConseil(
         Request $request,
         SerializerInterface $serializer,
@@ -92,6 +153,18 @@ final class ConseilController extends AbstractController
 
     #[Route("/api/conseil/{id}", name: "delete_conseil", methods: ["DELETE"])]
     #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    #[OA\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        description: "L'id du conseil à supprimer",
+        schema: new OA\Schema(type: "integer")
+    )]
+    #[OA\Response(
+        response: 204,
+        description: "Conseil supprimé avec succès"
+    )]
+    #[OA\Tag(name: 'conseil')]
     public function deleteConseil(Conseil $conseil, EntityManagerInterface $em): JsonResponse
     {
         $em->remove($conseil);
