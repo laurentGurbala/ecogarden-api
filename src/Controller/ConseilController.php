@@ -145,17 +145,25 @@ final class ConseilController extends AbstractController
         EntityManagerInterface $em,
         ValidatorInterface $validator) : JsonResponse
     {
-        $serializer->deserialize($request->getContent(), Conseil::class, 'json',
-        [AbstractNormalizer::OBJECT_TO_POPULATE => $currentConseil]);
-
-        $em->persist($currentConseil);
-        $em->flush();
-
+        try {
+            $serializer->deserialize(
+                $request->getContent(), 
+                Conseil::class, 
+                'json',
+                 [AbstractNormalizer::OBJECT_TO_POPULATE => $currentConseil]
+            );
+        } catch(NotNormalizableValueException $e) {
+            return new JsonResponse(['error' => 'Donnée invalide : ' . $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
+        }
+        
         $errors = $validator->validate($currentConseil);
         if (count($errors) > 0) {
             return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
         }
 
+        $em->persist($currentConseil);
+        $em->flush();
+        
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
     }
 
