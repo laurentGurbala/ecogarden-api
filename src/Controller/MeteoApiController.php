@@ -69,7 +69,7 @@ final class MeteoApiController extends AbstractController
         $meteo = $this->fetchMeteoData($ville, $httpClient, $cache);
 
         if (!$meteo) {
-            return $this->json(["erreur" => "Ville inconnue ou requête invalide"], 404);
+            return $this->json(["erreur" => "requête invalide"], 400);
         }
 
         return $this->json($meteo);
