@@ -21,24 +21,41 @@ use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 
 final class ConseilController extends AbstractController
 {
+    #[Route('/api/conseil', name: 'conseil', methods: ["GET"])]
+    #[OA\Get(
+        summary: "Retourne la liste des conseils du mois en cours"
+    )]
     #[OA\Response(
         response: 200,
-        description: "Retourne la liste des conseils du mois en cours",
+        description: "Conseil créé avec succès",
         content: new OA\JsonContent(
             type: "array",
-            items: new OA\Items(ref: new Model(type: Conseil::class, groups: ["read"]))
+            items: new OA\Items(ref: new Model(type: Conseil::class, groups: ["read"])),
+            example: [
+                [
+                    "id" => 1,
+                    "content" => "pensez à arroser le soir",
+                    "mois" => [6, 12]
+                ],
+                [
+                    "id" => 2,
+                    "content" => "arrosez le matin",
+                    "mois" => [7]
+                ]
+            ]
         )
     )]
     #[OA\Tag(name: 'conseil')]
-    #[Route('/api/conseil', name: 'conseil', methods: ["GET"])]
-    public function getConseilList(ConseilRepository $conseilRepository, SerializerInterface $serializer): JsonResponse
+    public function getConseilList(ConseilRepository $conseilRepository): JsonResponse
     {
         $conseilList = $conseilRepository->findByCurrentMonth();
-        $jsonConseilList = $serializer->serialize($conseilList, "json");
-
-        return new JsonResponse($jsonConseilList, Response::HTTP_OK, [], true);
+        return $this->json($conseilList, Response::HTTP_OK, [], ["groups" => ["read"]]);
     }
 
+    #[Route("/api/conseil/{mois}", name: "conseil_by_month", methods: ["GET"])]
+    #[OA\Get(
+        summary: "Retourne la liste de conseils pour le mois donné"
+    )]
     #[OA\Parameter(
         name: "mois",
         in: "path",
@@ -51,40 +68,58 @@ final class ConseilController extends AbstractController
         description: "Retourne la liste des conseils pour le mois donné",
         content: new OA\JsonContent(
             type: "array",
-            items: new OA\Items(ref: new Model(type: Conseil::class, groups: ["read"]))
+            items: new OA\Items(ref: new Model(type: Conseil::class, groups: ["read"])),
+            example: [
+                [
+                    "id" => 1,
+                    "content" => "pensez à arroser le soir",
+                    "mois" => [6, 12]
+                ],
+                [
+                    "id" => 2,
+                    "content" => "arrosez le matin",
+                    "mois" => [7]
+                ]
+            ]
         )
     )]
     #[OA\Tag(name: 'conseil')]
-    #[Route("/api/conseil/{mois}", name: "conseil_by_month", methods: ["GET"])]
-    public function getConseilByMonth(
-        int $mois, 
-        ConseilRepository $conseilRepository, 
-        SerializerInterface $serializer): JsonResponse
+    public function getConseilByMonth(int $mois, ConseilRepository $conseilRepository): JsonResponse
     {
         if ($mois < 1 || $mois > 12) {
             throw new BadRequestHttpException("Le mois doit être compris entre 1 et 12.");
         }
 
         $conseilList = $conseilRepository->findByMonth($mois);
-        $jsonConseilList = $serializer->serialize($conseilList, "json");
-
-        return new JsonResponse($jsonConseilList, Response::HTTP_OK, [], true);
+        return $this->json($conseilList, Response::HTTP_OK, [], ["groups" => ["read"]]);
     }
 
-    #[Route("/api/conseil", name: "create_conseil", methods:["POST"])]
+    #[Route("/api/conseil", name: "create_conseil", methods: ["POST"])]
     #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    #[OA\Post(
+        summary: "Crée un conseil"
+    )]
     #[OA\RequestBody(
         required: true,
         description: "Données du conseil à créer",
         content: new OA\JsonContent(
-            ref: new Model(type: Conseil::class, groups: ["write"])
+            ref: new Model(type: Conseil::class, groups: ["write"]),
+            example: [
+                "content" => "Pensez à arroser le soir",
+                "mois" => [6, 7]
+            ]
         )
     )]
     #[OA\Response(
         response: 201,
         description: "Conseil créé avec succès",
         content: new OA\JsonContent(
-            ref: new Model(type: Conseil::class, groups: ["read"])
+            ref: new Model(type: Conseil::class, groups: ["read"]),
+            example: [
+                "id" => 10,
+                "content" => "pensez à arroser le soir",
+                "mois" => [6, 12]
+            ]
         )
     )]
     #[OA\Tag(name: 'conseil')]
@@ -92,33 +127,32 @@ final class ConseilController extends AbstractController
         Request $request,
         SerializerInterface $serializer,
         EntityManagerInterface $em,
-        ValidatorInterface $validator): JsonResponse
-    {
+        ValidatorInterface $validator
+    ): JsonResponse {
         try {
             /** @var Conseil $conseil */
             $conseil = $serializer->deserialize($request->getContent(), Conseil::class, "json");
         } catch (NotNormalizableValueException $e) {
-            return new JsonResponse([
-                'error' => 'Donnée invalide : ' . $e->getMessage()
-            ], Response::HTTP_BAD_REQUEST);
+            return $this->json(['error' => 'Donnée invalide : ' . $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
 
         $errors = $validator->validate($conseil);
 
         if ($errors->count() > 0) {
-            return new JsonResponse($serializer->serialize($errors, "json"), JsonResponse::HTTP_BAD_REQUEST, [], true);
+            return $this->json($errors, Response::HTTP_BAD_REQUEST, [], ['groups' => ['read']]);
         }
 
         $em->persist($conseil);
         $em->flush();
 
-        $jsonConseil = $serializer->serialize($conseil, "json");
-
-        return new JsonResponse($jsonConseil, Response::HTTP_CREATED, [], true);
+        return $this->json($conseil, Response::HTTP_CREATED, [], ['groups' => ['read']]);
     }
 
     #[Route("/api/conseil/{id}", name: "update_conseil", methods: ["PUT"])]
     #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    #[OA\Put(
+        summary: "Modifier un conseil"
+    )]
     #[OA\Parameter(
         name: "id",
         in: "path",
@@ -130,7 +164,11 @@ final class ConseilController extends AbstractController
         required: true,
         description: "Données du conseil à mettre à jour",
         content: new OA\JsonContent(
-            ref: new Model(type: Conseil::class, groups: ["write"])
+            ref: new Model(type: Conseil::class, groups: ["write"]),
+            example: [
+                "content" => "Pensez à arroser le soir",
+                "mois" => [6, 7]
+            ]
         )
     )]
     #[OA\Response(
@@ -143,32 +181,35 @@ final class ConseilController extends AbstractController
         SerializerInterface $serializer,
         Conseil $currentConseil,
         EntityManagerInterface $em,
-        ValidatorInterface $validator) : JsonResponse
-    {
+        ValidatorInterface $validator
+    ): JsonResponse {
         try {
             $serializer->deserialize(
-                $request->getContent(), 
-                Conseil::class, 
+                $request->getContent(),
+                Conseil::class,
                 'json',
-                 [AbstractNormalizer::OBJECT_TO_POPULATE => $currentConseil]
+                [AbstractNormalizer::OBJECT_TO_POPULATE => $currentConseil]
             );
-        } catch(NotNormalizableValueException $e) {
-            return new JsonResponse(['error' => 'Donnée invalide : ' . $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
+        } catch (NotNormalizableValueException $e) {
+            return $this->json(['error' => 'Donnée invalide : ' . $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
         }
-        
+
         $errors = $validator->validate($currentConseil);
         if (count($errors) > 0) {
-            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+            return $this->json($errors, JsonResponse::HTTP_BAD_REQUEST, [], ['groups' => ['read']]);
         }
 
         $em->persist($currentConseil);
         $em->flush();
-        
-        return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+
+        return $this->json(null, JsonResponse::HTTP_NO_CONTENT);
     }
 
     #[Route("/api/conseil/{id}", name: "delete_conseil", methods: ["DELETE"])]
     #[IsGranted("ROLE_ADMIN", message: "Vous n'avez pas les droits suffisants")]
+    #[OA\Delete(
+        summary: "Supprime un conseil"
+    )]
     #[OA\Parameter(
         name: "id",
         in: "path",
@@ -186,6 +227,6 @@ final class ConseilController extends AbstractController
         $em->remove($conseil);
         $em->flush();
 
-        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+        return $this->json(null, Response::HTTP_NO_CONTENT);
     }
 }

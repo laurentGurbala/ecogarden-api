@@ -5,16 +5,17 @@ namespace App\Controller;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use OpenApi\Attributes as OA;
-use phpDocumentor\Reflection\Types\This;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
 final class MeteoApiController extends AbstractController
 {
     #[Route('/api/meteo', name: 'meteo', methods: ["GET"])]
+    #[OA\Get(
+        summary: "Retourne la météo de la ville de l'utilisateur connecté"
+    )]
     #[OA\Response(
         response: 200,
         description: "Données météo pour la ville de l'utilisateur",
@@ -40,6 +41,9 @@ final class MeteoApiController extends AbstractController
     }
 
     #[Route("api/meteo/{ville}", name: "meteo_ville", methods: ["GET"])]
+    #[OA\Get(
+        summary: "Retourne la météo de la ville choisie"
+    )]
     #[OA\Parameter(
         name: "ville",
         in: "path",
