@@ -24,7 +24,8 @@ final class MeteoApiController extends AbstractController
             ]
         )
     )]
-    public function index(HttpClientInterface $httpClient): JsonResponse
+    #[OA\Tag("météo")]
+    public function getMeteo(HttpClientInterface $httpClient): JsonResponse
     {
         /**
          * @var User
@@ -52,5 +53,45 @@ final class MeteoApiController extends AbstractController
         }
     }
 
-    
+    #[Route("api/meteo/{ville}", name: "meteo_ville", methods: ["GET"])]
+    #[OA\Parameter(
+        name: "ville",
+        in: "path",
+        required: true,
+        description: "Nom de la ville à rechercher",
+        schema: new OA\Schema(type: "string", example: "Paris")
+    )]
+    #[OA\Response(
+        response: 200,
+        description: "Météo de la ville demandée",
+        content: new OA\JsonContent(
+            type: "object",
+            properties: [
+                new OA\Property(property: "ville", type: "string", example: "Paris"),
+                new OA\Property(property: "température", type: "number", format: "float", example: 22.8),
+                new OA\Property(property: "description", type: "string", example: "nuageux"),
+            ]
+        )
+    )]
+    #[OA\Tag("météo")]
+    public function getMeteoByCity(string $ville, HttpClientInterface $httpClient) : JsonResponse 
+    {
+        $apiKey = $_ENV["OPENWEATHER_API_KEY"];
+        $url = "https://api.openweathermap.org/data/2.5/weather?q={$ville}&appid={$apiKey}&units=metric&lang=fr";
+        
+        try {
+            $response = $httpClient->request("GET", $url);
+            $data = $response->toArray();
+
+            $meteo = [
+                "ville" => $data["name"],
+                "température" => $data["main"]["temp"],
+                "description" => $data["weather"][0]["description"],
+            ];
+
+            return $this->json($meteo);
+        } catch(ClientExceptionInterface $e) {
+            return $this->json(["erreur" => "requête invalide ! "], 404);
+        }
+    }
 }
