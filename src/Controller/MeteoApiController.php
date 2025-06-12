@@ -8,6 +8,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use OpenApi\Attributes as OA;
+use phpDocumentor\Reflection\Types\This;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 final class MeteoApiController extends AbstractController
 {
@@ -25,32 +28,15 @@ final class MeteoApiController extends AbstractController
         )
     )]
     #[OA\Tag("météo")]
-    public function getMeteo(HttpClientInterface $httpClient): JsonResponse
+    public function getMeteo(HttpClientInterface $httpClient, CacheInterface $cache): JsonResponse
     {
         /**
          * @var User
          */
         $user = $this->getUser();
-
         $ville = $user->getVille();
 
-        $apiKey = $_ENV["OPENWEATHER_API_KEY"];
-        $url = "https://api.openweathermap.org/data/2.5/weather?q={$ville}&appid={$apiKey}&units=metric&lang=fr";
-
-        try {
-            $response = $httpClient->request("GET", $url);
-            $data = $response->toArray();
-
-            $meteo = [
-                "ville" => $data["name"],
-                "température" => $data["main"]["temp"],
-                "description" => $data["weather"][0]["description"],
-            ];
-
-            return $this->json($meteo);
-        } catch (ClientExceptionInterface $e) {
-            return $this->json(["erreur" => "requête invalide !"], 404);
-        }
+        return $this->getMeteoByCity($ville, $httpClient, $cache);
     }
 
     #[Route("api/meteo/{ville}", name: "meteo_ville", methods: ["GET"])]
@@ -74,24 +60,40 @@ final class MeteoApiController extends AbstractController
         )
     )]
     #[OA\Tag("météo")]
-    public function getMeteoByCity(string $ville, HttpClientInterface $httpClient) : JsonResponse 
+    public function getMeteoByCity(string $ville, HttpClientInterface $httpClient, CacheInterface $cache): JsonResponse
     {
-        $apiKey = $_ENV["OPENWEATHER_API_KEY"];
-        $url = "https://api.openweathermap.org/data/2.5/weather?q={$ville}&appid={$apiKey}&units=metric&lang=fr";
-        
-        try {
-            $response = $httpClient->request("GET", $url);
-            $data = $response->toArray();
+        $meteo = $this->fetchMeteoData($ville, $httpClient, $cache);
 
-            $meteo = [
-                "ville" => $data["name"],
-                "température" => $data["main"]["temp"],
-                "description" => $data["weather"][0]["description"],
-            ];
-
-            return $this->json($meteo);
-        } catch(ClientExceptionInterface $e) {
-            return $this->json(["erreur" => "requête invalide ! "], 404);
+        if (!$meteo) {
+            return $this->json(["erreur" => "Ville inconnue ou requête invalide"], 404);
         }
+
+        return $this->json($meteo);
+    }
+
+    private function fetchMeteoData(string $ville, HttpClientInterface $httpClient, CacheInterface $cache): ?array
+    {
+        $ville = strtolower($ville);
+        $cacheKey = "meteo_{$ville}";
+
+        return $cache->get($cacheKey, function (ItemInterface $item) use ($ville, $httpClient) {
+            $item->expiresAfter(600); // 10 minutes
+
+            $apiKey = $_ENV["OPENWEATHER_API_KEY"];
+            $url = "https://api.openweathermap.org/data/2.5/weather?q={$ville}&appid={$apiKey}&units=metric&lang=fr";
+
+            try {
+                $response = $httpClient->request("GET", $url);
+                $data = $response->toArray();
+
+                return [
+                    "ville" => $data["name"],
+                    "température" => $data["main"]["temp"],
+                    "description" => $data["weather"][0]["description"],
+                ];
+            } catch (\Exception $e) {
+                return null; // important : le cache ne sera pas enregistré si null est retourné
+            }
+        });
     }
 }
